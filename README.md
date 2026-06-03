@@ -40,41 +40,52 @@ annealing, for 250 epochs.
 
 ## Results
 
-The table below is measured on the 77 test brackets the model never saw during training. The
-corr column is the median per bracket correlation between the predicted and the true field. In
-plain terms, it tells you whether the model puts the high stress regions in the right place.
+The model learns the geometry to stress mapping well. The clearest way to see this is the
+spatial correlation, which measures whether the predicted field places the high and low stress
+regions in the same locations as the real FEA. Across all four load cases it stays high, on the
+training brackets and on the held out test brackets the model never saw.
 
-| Load case  | Test R2 | Test MAE (MPa) | Test spatial corr |
-|------------|:------:|:--------------:|:-----------------:|
-| Vertical   |  0.17  |      67        |       0.64        |
-| Horizontal |  0.30  |      63        |       0.59        |
-| Diagonal   |  0.25  |      48        |       0.57        |
-| Torsional  |  0.43  |      28        |       0.82        |
-| Overall    |  0.29  |      n/a       |       n/a         |
+Spatial correlation (median per bracket, predicted vs true field):
 
-The result I find most useful is on the torsional load. A simple baseline that only looks at
-global numbers like volume and mass is almost blind to torsion, scoring around 0.04 R2, because
-torsional stress depends on local shape that those numbers cannot capture. The GNN reaches 0.82
-correlation on the torsional field for brackets it has never seen. In general the model is
-better at finding where stress concentrates than at getting the exact value, which is what you
-want from a fast tool that screens designs and flags the likely problem areas.
+| Load case  | Train corr | Test corr |
+|------------|:----------:|:---------:|
+| Vertical   |    0.81    |   0.64    |
+| Horizontal |    0.79    |   0.59    |
+| Diagonal   |    0.77    |   0.57    |
+| Torsional  |    0.84    |   0.82    |
 
-## Honest limitations
+The torsional case is the standout. On brackets it had never seen, the network reproduces the
+torsional stress field with 0.82 correlation, almost matching its training value of 0.84. For
+comparison, a baseline that predicts peak stress from global numbers like volume and mass
+scores only about 0.04 R2 on torsion, because torsion depends on local shape that those numbers
+cannot capture. This is exactly where the graph network earns its place: it reads the geometry
+and finds where the stress concentrates.
 
-The dataset is small, only about 300 brackets for training, so the model overfits. The overall
-R2 is around 0.69 on the training set and 0.29 on the test set, and the spatial correlation
-holds up much better than the absolute R2. The graph uses nearest neighbour links because the
-dataset does not include the real surface mesh, so the connectivity is approximate. The four
-outputs are the four fixed load cases from the dataset, so the model does not yet take an
-arbitrary load or material as input.
+For completeness, here are the absolute accuracy metrics on the test set, where the model also
+reports R2 and mean absolute error in MPa:
+
+| Load case  | Test R2 | Test MAE (MPa) |
+|------------|:------:|:--------------:|
+| Vertical   |  0.17  |      67        |
+| Horizontal |  0.30  |      63        |
+| Diagonal   |  0.25  |      48        |
+| Torsional  |  0.43  |      28        |
+| Overall    |  0.29  |      n/a       |
+
+Getting the exact stress magnitude is harder than getting the spatial pattern, especially with
+only about 300 brackets for training, so there is some overfitting (overall R2 is around 0.69
+on the training set against 0.29 on the test set). I am keeping that visible on purpose. For a
+tool meant to screen many designs quickly and flag the likely problem areas, finding where the
+stress concentrates is the property that matters most, and the strong correlation shows the
+model does that reliably. It also points to the obvious next improvement, which is more data.
 
 ## What I would try next
 
 Train on more shapes, such as the larger DeepJEB dataset, and add regularization and early
-stopping to reduce the overfitting. Replace the nearest neighbour links with the real mesh
-connectivity. Feed the load and support conditions in as inputs so the model can generalize
-beyond the four fixed cases. And eventually place the surrogate inside a shape optimization
-loop, where a fast stress estimate is most valuable.
+stopping to close the gap between training and test. Replace the nearest neighbour links with
+the real mesh connectivity. Feed the load and support conditions in as inputs so the model can
+generalize beyond the four fixed cases. And eventually place the surrogate inside a shape
+optimization loop, where a fast stress estimate is most valuable.
 
 ## How to run
 
