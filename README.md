@@ -83,7 +83,4 @@ run the cells top to bottom. The data extraction is cached after the first run.
 pip install -r requirements.txt
 ```
 
----
 
-Built as a portfolio project at the intersection of **simulation/CAE methodology and machine
-learning** — surrogate models that accelerate engineering workflows.
